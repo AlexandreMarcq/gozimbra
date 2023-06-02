@@ -37,7 +37,7 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&config, "config", "c", "./gozimbra.yaml", "configuration file")
 	cmd.PersistentFlags().StringVarP(&logDir, "log", "l", "./log", "log directory")
-	cmd.PersistentFlags().StringVar(&outputFile, "output", defaultOutput, "output file")
+	cmd.PersistentFlags().StringVarP(&outputFile, "output", "o", defaultOutput, "output file")
 	cmd.PersistentFlags().StringVarP(&platform, "platform", "p", "", "zimbra platform")
 	cmd.PersistentFlags().BoolVar(&noLog, "no-log", false, "disables logs")
 	cmd.PersistentFlags().BoolVar(&noUi, "no-ui", false, "disables UI")
