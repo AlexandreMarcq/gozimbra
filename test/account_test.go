@@ -70,7 +70,7 @@ func TestModifyAccount(t *testing.T) {
 
 		if getAccountReg.Match(body) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><GetAccountResponse xmlns="urn:zimbraAdmin"><account name="%s"><a n="id">%s</a></account></GetAccountResponse></soap:Body></soap:Envelope>`, account, id)))
+			w.Write([]byte(fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><GetAccountResponse xmlns="urn:zimbraAdmin"><account name="%s"><a n="zimbraId">%s</a></account></GetAccountResponse></soap:Body></soap:Envelope>`, account, id)))
 		} else if modifyAccountReg.Match(body) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><ModifyAccountResponse xmlns="urn:zimbraAdmin" id="%s"><a n="ATTR1">VALUE1</a></ModifyAccountResponse></soap:Body></soap:Envelope>`, id)))
