@@ -56,23 +56,24 @@ func NewGetMsg(item string, attrs utils.AttrsMap, err error) getMsg {
 	}
 }
 
-type modifyMsg struct {
-	item     string
+type modifyAccountMsg struct {
+	name     string
 	oldAttrs utils.AttrsMap
 	newAttrs utils.AttrsMap
+	password string
 	err      error
 }
 
-func (m modifyMsg) toResult() result {
+func (m modifyAccountMsg) toResult() result {
 	return result{
-		item: m.item,
+		item: m.name,
 		err:  m.err,
 	}
 }
 
-func (m modifyMsg) write(w io.StringWriter) error {
+func (m modifyAccountMsg) write(w io.StringWriter) error {
 	var sb strings.Builder
-	_, err := sb.WriteString(m.item)
+	_, err := sb.WriteString(m.name)
 	if err != nil {
 		return err
 	}
@@ -93,6 +94,13 @@ func (m modifyMsg) write(w io.StringWriter) error {
 		}
 	}
 
+	if m.password != "" {
+		_, err := sb.WriteString(fmt.Sprintf(";%s", m.password))
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err = w.WriteString(fmt.Sprintf("%s\n", sb.String()))
 	if err != nil {
 		return err
@@ -101,11 +109,12 @@ func (m modifyMsg) write(w io.StringWriter) error {
 	return nil
 }
 
-func NewModifyMsg(item string, oldAttrs, newAttrs utils.AttrsMap, err error) modifyMsg {
-	return modifyMsg{
-		item,
+func NewModifyMsg(name string, oldAttrs, newAttrs utils.AttrsMap, password string, err error) modifyAccountMsg {
+	return modifyAccountMsg{
+		name,
 		oldAttrs,
 		newAttrs,
+		password,
 		err,
 	}
 }

@@ -48,5 +48,18 @@ func (r *modifyAccountRequest) ToXML() string {
 	for _, a := range r.attributes.Keys() {
 		sb.WriteString(fmt.Sprintf("<a n=\"%s\">%s</a>", a, r.attributes[a]))
 	}
-	return fmt.Sprintf("<ModifyAccountRequest xmlns=\"urn:zimbraAdmin\" id=\"%s\">%s</ModifyAccountRequest>", r.id, sb.String())
+	return fmt.Sprintf(`<ModifyAccountRequest xmlns="urn:zimbraAdmin" id="%s">%s</ModifyAccountRequest>`, r.id, sb.String())
+}
+
+type setPasswordRequest struct {
+	id       string
+	password string
+}
+
+func NewSetPasswordRequest(id, password string) *setPasswordRequest {
+	return &setPasswordRequest{id, password}
+}
+
+func (r *setPasswordRequest) ToXML() string {
+	return fmt.Sprintf(`<SetPasswordRequest xmlns="urn:zimbraAdmin" id="%s" newPassword="%s"/>`, r.id, r.password)
 }

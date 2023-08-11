@@ -13,13 +13,15 @@ import (
 	"github.com/AlexandreMarcq/gozimbra/internal/utils"
 	client "github.com/AlexandreMarcq/gozimbra/pkg"
 	tea "github.com/charmbracelet/bubbletea"
+	pass "github.com/sethvargo/go-password/password"
 	"github.com/spf13/cobra"
 )
 
 var (
-	data   string
-	lock   bool
-	unlock bool
+	data     string
+	lock     bool
+	password bool
+	unlock   bool
 )
 
 func NewModifyCmd() *cobra.Command {
@@ -87,11 +89,13 @@ func NewModifyCmd() *cobra.Command {
 					return err
 				}
 			}
-			if len(formattedData.Keys()) == 0 {
+			if len(formattedData.Keys()) == 0 && !password {
 				return errors.New("no attribute to modify, use a flag or provide a data file with --data")
 			}
 
-			log.Printf("Desired attributes are: %v", formattedData.Keys())
+			if len(formattedData.Keys()) > 0 {
+				log.Printf("Desired attributes are: %v", formattedData.Keys())
+			}
 
 			out, err := cmd_utils.SetupOutput(outputFile, stdout)
 			if err != nil {
@@ -102,6 +106,13 @@ func NewModifyCmd() *cobra.Command {
 			var sb strings.Builder
 			for _, k := range formattedData.Keys() {
 				_, err := sb.WriteString(fmt.Sprintf(";old_%s;new_%s", k, k))
+				if err != nil {
+					return err
+				}
+			}
+
+			if password {
+				_, err := sb.WriteString(";new_password")
 				if err != nil {
 					return err
 				}
@@ -122,7 +133,7 @@ func NewModifyCmd() *cobra.Command {
 				list,
 				out,
 				func(account string) tea.Cmd {
-					return modifyAccount(client, account, formattedData)
+					return modifyAccount(client, account, formattedData, password)
 				},
 			)
 
@@ -132,6 +143,7 @@ func NewModifyCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&data, "data", "", "data file to modify the accounts (CSV format without headers)")
 	cmd.Flags().BoolVar(&lock, "lock", false, "locks the accounts")
+	cmd.Flags().BoolVar(&password, "password", false, "changes the password")
 	cmd.Flags().BoolVar(&unlock, "unlock", false, "unlocks the accounts")
 
 	cmd.MarkFlagFilename("data")
@@ -140,22 +152,48 @@ func NewModifyCmd() *cobra.Command {
 	return cmd
 }
 
-func modifyAccount(client *client.Client, account string, attributes utils.AttrsMap) tea.Cmd {
+func modifyAccount(client *client.Client, account string, attributes utils.AttrsMap, changePassword bool) tea.Cmd {
 	return func() tea.Msg {
-		log.Printf("Getting information for %s", account)
-		oldAttrs, err := client.GetAccount(account, attributes.Keys())
+		var oldAttrs, newAttrs utils.AttrsMap
+		var err error
+
+		log.Printf("Getting ID of %s", account)
+		id, err := client.GetId(account)
 		if err != nil {
-			log.Printf("Error getting information for %s: %v", account, err)
-			return models.NewModifyMsg(account, attributes, nil, err)
+			log.Printf("Error getting ID of %s: %v", account, err)
+			return models.NewModifyMsg(account, attributes, nil, "", err)
 		}
 
-		log.Printf("Modifying information for %s", account)
-		newAttrs, err := client.ModifyAccount(account, attributes)
-		if err != nil {
-			log.Printf("Error modifying information for %s: %v", account, err)
-			return models.NewModifyMsg(account, attributes, nil, err)
+		if len(attributes.Keys()) != 0 {
+			log.Printf("Getting information for %s", account)
+			oldAttrs, err = client.GetAccount(account, attributes.Keys())
+			if err != nil {
+				log.Printf("Error getting information for %s: %v", account, err)
+				return models.NewModifyMsg(account, attributes, nil, "", err)
+			}
+
+			log.Printf("Modifying information for %s", account)
+			newAttrs, err = client.ModifyAccount(id, attributes)
+			if err != nil {
+				log.Printf("Error modifying information for %s: %v", account, err)
+				return models.NewModifyMsg(account, attributes, nil, "", err)
+			}
 		}
 
-		return models.NewModifyMsg(account, oldAttrs, newAttrs, nil)
+		newPassword := ""
+		if password {
+			log.Printf("Changing password for %s", account)
+			newPassword, err = pass.Generate(12, 3, 1, false, true)
+			if err != nil {
+				log.Printf("Error generating password for: %s, %v", account, err)
+			}
+			_, err = client.SetPassword(id, newPassword)
+			if err != nil {
+				log.Printf("Error changing password for %s: %v", account, err)
+				return models.NewModifyMsg(account, nil, nil, "", err)
+			}
+		}
+
+		return models.NewModifyMsg(account, oldAttrs, newAttrs, newPassword, nil)
 	}
 }
