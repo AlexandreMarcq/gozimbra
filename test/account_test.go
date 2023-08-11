@@ -19,7 +19,10 @@ func TestGetAccount(t *testing.T) {
 		attrs["name"] = "NAME"
 		attrs["description"] = "DESCRIPTION"
 
-		server := NewXMLServer(t, fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"><authToken>%s</authToken><format type="xml"/></context></soap:Header><soap:Body><GetAccountRequest xmlns="urn:zimbraAdmin" attrs="name,description"><account by="name">USER_ACCOUNT</account></GetAccountRequest></soap:Body></soap:Envelope>`, token), `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><GetAccountResponse xmlns="urn:zimbraAdmin"><account name="USER_ACCOUNT"><a n="name">NAME</a><a n="description">DESCRIPTION</a></account></GetAccountResponse></soap:Body></soap:Envelope>`)
+		server := NewXMLServer(t,
+			fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"><authToken>%s</authToken><format type="xml"/></context></soap:Header><soap:Body><GetAccountRequest xmlns="urn:zimbraAdmin" attrs="name,description"><account by="name">USER_ACCOUNT</account></GetAccountRequest></soap:Body></soap:Envelope>`, token),
+			`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><GetAccountResponse xmlns="urn:zimbraAdmin"><account name="USER_ACCOUNT"><a n="name">NAME</a><a n="description">DESCRIPTION</a></account></GetAccountResponse></soap:Body></soap:Envelope>`,
+		)
 		defer server.Close()
 
 		client := client.NewClient(server.URL)
@@ -38,7 +41,10 @@ func TestGetAccount(t *testing.T) {
 	t.Run("getting an error on non-existing account", func(t *testing.T) {
 		fakeAccount := "NO_ACCOUNT"
 		errMessage := fmt.Sprintf("no such account: %s", fakeAccount)
-		server := NewXMLServer(t, fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"><authToken>%s</authToken><format type="xml"/></context></soap:Header><soap:Body><GetAccountRequest xmlns="urn:zimbraAdmin" attrs="name,description"><account by="name">%s</account></GetAccountRequest></soap:Body></soap:Envelope>`, token, fakeAccount), fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><soap:Fault><faultcode>soap:Client</faultcode><faultstring>%s</faultstring><detail><Error xmlns="urn:zimbra"><Code>account.NO_SUCH_ACCOUNT</Code><Trace>TRACE</Trace></Error></detail></soap:Fault></soap:Body></soap:Envelope>`, errMessage))
+		server := NewXMLServer(t,
+			fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"><authToken>%s</authToken><format type="xml"/></context></soap:Header><soap:Body><GetAccountRequest xmlns="urn:zimbraAdmin" attrs="name,description"><account by="name">%s</account></GetAccountRequest></soap:Body></soap:Envelope>`, token, fakeAccount),
+			fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><soap:Fault><faultcode>soap:Client</faultcode><faultstring>%s</faultstring><detail><Error xmlns="urn:zimbra"><Code>account.NO_SUCH_ACCOUNT</Code><Trace>TRACE</Trace></Error></detail></soap:Fault></soap:Body></soap:Envelope>`, errMessage),
+		)
 		defer server.Close()
 
 		client := client.NewClient(server.URL)
@@ -84,12 +90,31 @@ func TestModifyAccount(t *testing.T) {
 	client := client.NewClient(server.URL)
 	client.Token = token
 
-	got, err := client.ModifyAccount(account, attrs)
+	got, err := client.ModifyAccount(id, attrs)
 	if err != nil {
-		t.Fatalf("error modifying account: %s", err)
+		t.Fatalf("error modifying account: %v", err)
 	}
 
 	if got["ATTR1"] != "VALUE1" {
 		t.Errorf("did not modify correct attribute, wanted 'VALUE1' got %s", got["ATTR1"])
+	}
+}
+
+func TestSetPassword(t *testing.T) {
+	token := "TEST_TOKEN"
+	id := "TEST_ID"
+	newPassword := "TEST_NEW_PASSWORD"
+	server := NewXMLServer(t,
+		fmt.Sprintf(`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"><authToken>%s</authToken><format type="xml"/></context></soap:Header><soap:Body><SetPasswordRequest xmlns="urn:zimbraAdmin" id="%s" newPassword="%s"/></soap:Body></soap:Envelope>`, token, id, newPassword),
+		`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Header><context xmlns="urn:zimbra"/></soap:Header><soap:Body><SetPasswordResponse></SetPasswordResponse></soap:Body></soap:Envelope>`,
+	)
+	defer server.Close()
+
+	client := client.NewClient(server.URL)
+	client.Token = token
+
+	_, err := client.SetPassword(id, newPassword)
+	if err != nil {
+		t.Fatalf("error setting new password : %v", err)
 	}
 }

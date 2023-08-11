@@ -38,3 +38,12 @@ func TestModifyAccountRequest(t *testing.T) {
 
 	test.AssertXML(t, got, want)
 }
+
+func TestSetPasswordRequest(t *testing.T) {
+	testId := "ID"
+	testPassword := "TEST_PASSWORD"
+	want := fmt.Sprintf(`<SetPasswordRequest xmlns="urn:zimbraAdmin" id="%s" newPassword="%s"/>`, testId, testPassword)
+	got := account.NewSetPasswordRequest(testId, testPassword).ToXML()
+
+	test.AssertXML(t, got, want)
+}
