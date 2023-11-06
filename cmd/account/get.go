@@ -8,6 +8,7 @@ import (
 
 	"github.com/AlexandreMarcq/gozimbra/internal/cmd_utils"
 	"github.com/AlexandreMarcq/gozimbra/internal/models"
+	"github.com/AlexandreMarcq/gozimbra/internal/utils"
 	client "github.com/AlexandreMarcq/gozimbra/pkg"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -75,8 +76,15 @@ func getAccount(client *client.Client, account string, attributes []string) tea.
 		log.Printf("Getting account information for %s", account)
 		attrs, err := client.GetAccount(account, attributes)
 		if err != nil {
+			attrs := make(utils.AttrsMap)
+			for _, attr := range attributes {
+				attrs[attr] = "ERR"
+			}
+			if strings.Contains(err.Error(), "no such account") && attrs.ContainsKey("zimbraAccountStatus") {
+				attrs["zimbraAccountStatus"] = "deleted"
+			}
 			log.Printf("Error getting information for %s: %v", account, err)
-			return models.NewGetMsg(account, nil, err)
+			return models.NewGetMsg(account, attrs, err)
 		}
 
 		return models.NewGetMsg(account, attrs, nil)
