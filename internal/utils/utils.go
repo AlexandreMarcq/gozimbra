@@ -12,3 +12,12 @@ func (a AttrsMap) Keys() []string {
 	sort.Strings(keys)
 	return keys
 }
+
+func (a AttrsMap) ContainsKey(value string) bool {
+	for k := range a {
+		if k == value {
+			return true
+		}
+	}
+	return false
+}
